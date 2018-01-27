@@ -7,11 +7,16 @@ Web scraper for Canadian YGO card sellers:
 ### What does it do
 - So far it doesn't do anything other than gather information from both sites and prints it to console
 
+### Usage
+```
+python scrape.py 'deskbot 001'
+
+```
+
 ### Limitations
 - Doesn't support pagination, ie. it only looks at first page
 - if f2f or dollys ever changes their theme RIP
 - only takes first card available from booster/deck, eg if near mint and slightly played are available for purchase it'll list the near mint one because it is first
-- everything is hardcoded so far
 
 ### Requirements:
 - python 2.7 (not compatible with python 3.xx)
