@@ -8,7 +8,12 @@ from bs4 import BeautifulSoup
 ## eg: Maxx "C" Common     | Structure Deck: Machine Reactor | Near Mint | English | 7.99 | 2
 ##     Maxx "C" Super Rare | Collector Tin Promos            | -         | -       | 8.99 | 0
 #################################################### 
-
+## LIMITATIONS:
+## A lot
+## Currently only checks the first condition available - eg, if a card has nm, and moderatly playe
+## it'll only list the near mint one
+## - currently cannot support pagination - only looks at first page results (rip MST)
+####################################################
 
 #################################
 ## SCRAPING FACE TO FACE GAMES ##
@@ -32,15 +37,12 @@ for row in content_table.findAll('tr'):
         if meta_td == '':
             continue;
         cell_list_raw = (meta_td.get_text(';', strip=True).split(';'))
-	if cell_list_raw[2] == ' No conditions in stock.': 
+	if cell_list_raw[2] == 'No conditions in stock.': 
 	    cell_list = cell_list_raw[:2]
-            cell_list.extend(['-', '-'])
-            cell_list.append(cell_list_raw[3]
+            cell_list.extend(['-', '-', cell_list_raw[3], '0'])
         else:
             cell_list = cell_list_raw[:6]
         f2f_res.append(cell_list)
-
-print f2f_res
 
 #####################
 ## SCRAPING DOLLYS ##
@@ -59,7 +61,13 @@ for li in content_list.findAll('li'):
     li_list_raw = []
     li_list = []
     li_list_raw = li.get_text(';', strip=True).split(';')
-    dollys_res.append(li_list_raw)
+    if li_list_raw[2] == 'Out of stock':
+        li_list = li_list_raw[:2]
+        li_list.extend(['-', '-', li_list_raw[5], '0'])
+    else:
+        li_list = li_list_raw[:2]
+        li_list.extend([li_list_raw[4], 'English', li_list_raw[2], li_list_raw[5]])
+    dollys_res.append(li_list)
 
 for row in f2f_res:
     print row
