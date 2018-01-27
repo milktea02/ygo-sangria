@@ -11,6 +11,7 @@ Web scraper for Canadian YGO card sellers:
 - Doesn't support pagination, ie. it only looks at first page
 - if f2f or dollys ever changes their theme RIP
 - only takes first card available from booster/deck, eg if near mint and slightly played are available for purchase it'll list the near mint one because it is first
+- everything is hardcoded so far
 
 ### Requirements:
 - python 2.7 (not compatible with python 3.xx)
@@ -18,7 +19,7 @@ Web scraper for Canadian YGO card sellers:
 
 You can run it using virtualenv to keep things clean https://virtualenv.pypa.io/en/stable/
 
-Ubuntu
+#### Ubuntu
 ```
 ### install virtualenv using apt or pip
 sudo apt-get install python-virtualenv
@@ -27,6 +28,9 @@ source dev/bin/activate
 ### get out of the env
 deactivate
 ```
+#### Windows
+You can install virtualenv here: http://pymote.readthedocs.io/en/latest/install/windows_virtualenv.html  
+Recommend to use virtualenv with windows
 
 ### Why
 I was drinking a sangria while having dinner and decided to make a web scraper for fun.
