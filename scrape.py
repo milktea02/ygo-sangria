@@ -3,10 +3,10 @@ from bs4 import BeautifulSoup
 
 ####################################################
 ## We want to format our data like so:
-## Name of card | Pack | Condition | Language | Price | Number
-##      0       |  1   |    2      |   3      |   4   |   5
-## eg: Maxx "C" Common     | Structure Deck: Machine Reactor | Near Mint | English | 7.99 | 2
-##     Maxx "C" Super Rare | Collector Tin Promos            | -         | -       | 8.99 | 0
+## Name of card | Pack | Language | Price | Number
+##      0       |  1   |   2      |   3   |   4
+## eg: Maxx "C" Common     | Structure Deck: Machine Reactor | Near Mint, English | 7.99 | 2
+##     Maxx "C" Super Rare | Collector Tin Promos            | -                  | 8.99 | 0
 #################################################### 
 ## LIMITATIONS:
 ## A lot
@@ -43,10 +43,9 @@ def f2f_scrape(f2f_query):
             cell_list_raw = (meta_td.get_text(';', strip=True).split(';'))
     	    if cell_list_raw[2] == 'No conditions in stock.': 
                 cell_list = cell_list_raw[:2]
-                cell_list.extend(['-', '-', cell_list_raw[3], '0'])
+                cell_list.extend(['-', cell_list_raw[3], '0'])
             else:
-                uh_oh = cell_list_raw[2].split(',')
-                cell_list = cell_list_raw[:2] + uh_oh + cell_list_raw[3:5]
+                cell_list = cell_list_raw[:5]
             f2f_res.append(cell_list)
     return f2f_res
 
@@ -67,10 +66,10 @@ def dolly_scrape(dolly_query):
         li_list_raw = li.get_text(';', strip=True).split(';')
         if li_list_raw[2] == 'Out of stock':
             li_list = li_list_raw[:2]
-            li_list.extend(['-', '-', li_list_raw[5], '0'])
+            li_list.extend(['-', li_list_raw[5], '0'])
         else:
             li_list = li_list_raw[:2]
-            li_list.extend([li_list_raw[4], 'English', li_list_raw[2], li_list_raw[5]])
+            li_list.extend([li_list_raw[4], li_list_raw[2], li_list_raw[5]])
         dollys_res.append(li_list)
     return dollys_res
 
@@ -92,15 +91,15 @@ if __name__ == '__main__':
     dolly = dolly_scrape(d)
 
     print 
-    print "NAME | PACK |\nCONDITION | LANGUAGE | PRICE | STOCK"
+    print "NAME | PACK |\nCONDITION | PRICE | STOCK"
     print "=========== SHOWING RESULTS FOR FACE TO FACE GAMES =============="
     for row in f2f:
         print row[0] + "\t|" + row[1]
-        print row[2] + "\t|" + row[3] + "\t|" + row[4] + "\t|" + row[5] + "\n"
+        print row[2] + "\t|" + row[3] + "\t|" + row[4] + "\n"
 
     print "\n=========== SHOWING RESULTS FOR DOLLYS TOYS & GAMES =============="
     for row in dolly:
         print row[0] + "\t|" + row[1]
-        print row[2] + "\t|" + row[3] + "\t|" + row[4] + "\t|" + row[5] + "\n"
+        print row[2] + "\t|" + row[3] + "\t|" + row[4] + "\n"
 
 
