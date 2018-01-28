@@ -1,5 +1,9 @@
+from __future__ import print_function
+
 import requests, sys
 from bs4 import BeautifulSoup
+from colorama import init , Fore, Style
+init(autoreset=True)
 
 ####################################################
 ## We want to format our data like so:
@@ -19,6 +23,7 @@ def initialize(card_name):
     query = card_name.replace(' ', '+')
     f2f_query = 'http://www.facetofacegames.com/products/search?query='+query
     dolly_query = 'http://www.dollys.ca/products/search?q='+query
+    print("Using queries:\n", f2f_query, "\n", dolly_query)
 
     return(f2f_query, dolly_query)
 
@@ -74,32 +79,32 @@ def dolly_scrape(dolly_query):
     return dollys_res
 
 if __name__ == '__main__':
-    print "Starting", sys.argv[0], "..."
-    print "..."
+    print("Starting", sys.argv[0], "...")
+    print("...")
 
     if len(sys.argv) < 2:
-        print "Usage: python scrape.py 'card name'"
-        print "\twhere the card name should not have any special characters"
-        print "\teg. $ python scrape.py 'maxx c'"
-        print "exiting...."
+        print("Usage: python scrape.py 'card name'")
+        print("\twhere the card name should not have any special characters")
+        print("teg. $ python scrape.py 'maxx c'")
+        print("exiting....")
         exit()
 
     card_name = sys.argv[1]
-    print "Searching for:", card_name
+    print("Searching for:", card_name)
     f, d = initialize(card_name)
     f2f = f2f_scrape(f)
     dolly = dolly_scrape(d)
 
-    print 
-    print "NAME | PACK |\nCONDITION | PRICE | STOCK"
-    print "=========== SHOWING RESULTS FOR FACE TO FACE GAMES =============="
+    print() 
+    print("NAME | PACK |\nCONDITION | PRICE | STOCK")
+    print(Fore.CYAN + "=========== SHOWING RESULTS FOR FACE TO FACE GAMES ==============")
     for row in f2f:
-        print row[0] + "\t|" + row[1]
-        print row[2] + "\t|" + row[3] + "\t|" + row[4] + "\n"
+        print(row[0] + "\t|" + row[1])
+        print(row[2] + "\t|" + row[3] + "\t|" + row[4] + "\n")
 
-    print "\n=========== SHOWING RESULTS FOR DOLLYS TOYS & GAMES =============="
+    print(Fore.CYAN + "\n=========== SHOWING RESULTS FOR DOLLYS TOYS & GAMES ==============")
     for row in dolly:
-        print row[0] + "\t|" + row[1]
-        print row[2] + "\t|" + row[3] + "\t|" + row[4] + "\n"
+        print(row[0] + "\t|" + row[1])
+        print(row[2] + "\t|" + row[3] + "\t|" + row[4] + "\n")
 
 
