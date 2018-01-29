@@ -1,7 +1,10 @@
 from flask import Flask, render_template, request
-import requests, sys
+import requests, sys, time
 from bs4 import BeautifulSoup
 from operator import itemgetter
+from multiprocessing import Pool
+import logging
+from logging.handlers import RotatingFileHandler
 
 app = Flask(__name__)
 
@@ -13,10 +16,10 @@ def cards():
     
     ## POST
     data = request.form['data']
-    print(data)
+    app.logger.info("Searching: " + data)
 
     card_name_query = card_init(data.lower())
-
+    start = time.time()
     f = f2f_scrape(card_name_query)
     d = dolly_scrape(card_name_query)
 
@@ -24,6 +27,8 @@ def cards():
         f = f[:10]
     if len(d) > 10:
         d = d[:10]
+    end = time.time()
+    app.logger.info("Time: " + str(round(end - start, 2)))
     return render_template('cards.html', f_list = f, d_list = d)
 
 def card_init(card_name):
@@ -37,13 +42,26 @@ def card_init(card_name):
 def f2f_scrape(card_name_query):
     f2f_res = []
     url = "http://www.facetofacegames.com/products/search?query={}".format(card_name_query)
-    f2f_res, pages = f2f_scrape_helper(url, card_name_query)
+    response = requests.get(url)
+    html = response.content
+    soup = BeautifulSoup(html, 'html.parser')
+    pages = pagination(soup)
     # Do we need to paginate?
     if pages > 0:
-        for i in range(2, pages+1):
+        p = Pool(pages)
+        urls = []
+        cards = []
+        for i in range(1, pages + 1):
             url = "http://www.facetofacegames.com/products/search?page={}&query={}".format(i, card_name_query)
-            f2f_res.extend(f2f_scrape_helper(url, card_name_query)[0])
-
+            urls.append((url, card_name_query))
+        results = p.starmap(f2f_scrape_helper, urls)
+        p.terminate()
+        p.join()
+        for x in results:
+            f2f_res.extend(x)
+    else:
+        f2f_res = f2f_scrape_helper(url, card_name_query)
+    
     f2f_res.sort(key=itemgetter(3))
     return f2f_res
 
@@ -75,8 +93,7 @@ def f2f_scrape_helper(url, card_name_query):
                 cell_list.append(keep_nums(cell_list_raw[4]))
             result_list.append(cell_list)
 
-    pages = pagination(soup)
-    return result_list, pages
+    return result_list
 
 #####################
 ## SCRAPING DOLLYS ##
@@ -85,12 +102,27 @@ def f2f_scrape_helper(url, card_name_query):
 def dolly_scrape(card_name_query):
     dollys_res = []
     url = "http://www.dollys.ca/products/search?q={}".format(card_name_query)
-    dollys_res, pages = dolly_scrape_helper(url, card_name_query)
+    response = requests.get(url)
+    html = response.content
+    soup = BeautifulSoup(html, 'html.parser')
+    pages = pagination(soup)
+    dollys_res = dolly_scrape_helper(url, card_name_query)
 
     if pages > 0:
-        for i in range(2, pages+1):
+        p = Pool(pages)
+        args = []
+        for i in range(1, pages+1):
             url = "http://www.dollys.ca/products/search?page={}&q={}".format(i, card_name_query)
-            dollys_res.extend(dolly_scrape_helper(url, card_name_query)[0])
+            args.append((url, card_name_query))
+            #dollys_res.extend(dolly_scrape_helper(url, card_name_query)[0])
+        results = p.starmap(dolly_scrape_helper, args)
+        p.terminate()
+        p.join()
+        for x in results:
+            dollys_res.extend(x)
+    else:
+        dollys_res = dolly_scrape_helper(url, card_name_query)
+
     
     dollys_res.sort(key=itemgetter(3))
     return dollys_res
@@ -116,8 +148,7 @@ def dolly_scrape_helper(url, card_name_query):
             li_list = li_list_raw[:2]
             li_list.extend([remove_trailing_comma(li_list_raw[4]), remove_cad(li_list_raw[2]), keep_nums(li_list_raw[5], False)])
         result_list.append(li_list)
-    pages = pagination(soup)
-    return result_list, pages
+    return result_list
 
 #############
 ## HELPERS ##
@@ -166,6 +197,9 @@ def remove_trailing_comma(string):
 
 
 if __name__ == "__main__":
+    handler = RotatingFileHandler('cards.log', maxBytes=10000, backupCount=1)
+    handler.setLevel(logging.INFO)
+    app.logger.addHandler(handler)
     app.run(debug=True)
 
 
