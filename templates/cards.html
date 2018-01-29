@@ -8,25 +8,86 @@
     <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
     <link rel="stylesheet" href="https://code.getmdl.io/1.3.0/material.indigo-pink.min.css">
     <script defer src="https://code.getmdl.io/1.3.0/material.min.js"></script>
+
+    <style>
+.full_width.mdl-data-table {
+  width: 100%
+}
+
+.title_width.mdl-data-table__cell {
+    width: 30%;
+}
+
+.cell_width.mdl-data-table__cell {
+    width: 17.5%;
+}
+
+.cell_width.mdl-data-table__cell--non-numeric {
+    width: 17.5%;
+}
+.demo-layout-waterfall .mdl-layout__header-row .mdl-navigation__link:last-of-type  {
+  padding-right: 0;
+}
+
+</style>
 </head>
 <body>
 
-     <table class="mdl-data-table mdl-js-data-table mdl-data-table mdl-shadow--2dp">
+
+
+
+
+    <div class="demo-layout-waterfall mdl-layout mdl-js-layout">
+      <header class="mdl-layout__header mdl-layout__header--waterfall">
+        <!-- Top row, always visible -->
+        <div class="mdl-layout__header-row">
+          <!-- Title -->
+          <span class="mdl-layout-title">YGO Sangria</span>
+          <div class="mdl-layout-spacer"></div>
+          <div class="mdl-textfield mdl-js-textfield mdl-textfield--expandable
+                      mdl-textfield--floating-label mdl-textfield--align-right">
+            <form action="/" method="POST">
+            <label class="mdl-button mdl-js-button mdl-button--icon"
+                   for="waterfall-exp">
+              <i class="material-icons">search</i>
+            </label>
+            <div class="mdl-textfield__expandable-holder">
+              <input class="mdl-textfield__input" type="text" name="data"
+                     id="waterfall-exp">
+            </div>
+            </form>
+          </div>
+        </div>
+        <!-- Bottom row, not visible on scroll -->
+        <div class="mdl-layout__header-row">
+          <div class="mdl-layout-spacer"></div>
+          <!-- Navigation -->
+          <nav class="mdl-navigation">
+            <a class="mdl-navigation__link" href="http://www.facetofacegames.com">Face to Face Games</a>
+            <a class="mdl-navigation__link" href="http://www.dollys.ca/">Dolly's Toys & Games</a>
+          </nav>
+        </div>
+      </header>
+      <main class="mdl-layout__content">
+        <div class="page-content">
+            
+                <h3> Face to Face Games </h3>
+     <table class="full_width mdl-data-table mdl-js-data-table mdl-shadow--2dp" width=50%>
       <thead>
         <tr>
-          <th>Name</th>
-          <th>Set</th>
-          <th>Condition</th>
-          <th>Price</th>
-          <th>Quantity</th>
+          <th class="title_width mdl-data-table__cell--non-numeric">Name</th>
+          <th class="cell_width mdl-data-table__cell--non-numeric">Set</th>
+          <th class="cell_width mdl-data-table__cell--non-numeric">Condition</th>
+          <th class="cell_width mdl-data-table__cell">Price</th>
+          <th class="cell_width mdl-data-table__cell">Quantity</th>
         </tr>
       </thead>
       <tbody>
              {% for entry in f_list %}
         <tr>
-            <td>{{ entry[0] }}</td>
-            <td>{{ entry[1] }}</td>
-            <td>{{ entry[2] }}</td>
+            <td class="mdl-data-table__cell--non-numeric">{{ entry[0] }}</td>
+            <td class="mdl-data-table__cell--non-numeric">{{ entry[1] }}</td>
+            <td class="mdl-data-table__cell--non-numeric">{{ entry[2] }}</td>
             <td>{{ entry[3] }}</td>
             <td>{{ entry[4] }}</td>
         </tr>
@@ -34,29 +95,32 @@
       </tbody>
     </table>
 
-         <table class="mdl-data-table mdl-js-data-table mdl-data-table mdl-shadow--2dp">
+    <h3>Dolly's Toys and Games</h3>
+     <table class="full_width mdl-data-table mdl-js-data-table mdl-shadow--2dp" width=50%>
       <thead>
         <tr>
-          <th>Name</th>
-          <th>Set</th>
-          <th>Condition</th>
-          <th>Price</th>
-          <th>Quantity</th>
+          <th class="title_width mdl-data-table__cell--non-numeric">Name</th>
+          <th class="cell_width mdl-data-table__cell--non-numeric">Set</th>
+          <th class="cell_width mdl-data-table__cell--non-numeric">Condition</th>
+          <th class="cell_width mdl-data-table__cell">Price</th>
+          <th class="cell_width mdl-data-table__cell">Quantity</th>
         </tr>
       </thead>
       <tbody>
              {% for entry in d_list %}
         <tr>
-            <td>{{ entry[0] }}</td>
-            <td>{{ entry[1] }}</td>
-            <td>{{ entry[2] }}</td>
+            <td class="mdl-data-table__cell--non-numeric">{{ entry[0] }}</td>
+            <td class="mdl-data-table__cell--non-numeric">{{ entry[1] }}</td>
+            <td class="mdl-data-table__cell--non-numeric">{{ entry[2] }}</td>
             <td>{{ entry[3] }}</td>
             <td>{{ entry[4] }}</td>
         </tr>
             {% endfor %}
       </tbody>
     </table>
-
+        </div>
+      </main>
+    </div>
 </body>
 
 </html>

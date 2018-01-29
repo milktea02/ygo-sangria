@@ -6,20 +6,18 @@ init(autoreset=True)
 
 app = Flask(__name__)
 
-@app.route("/")
-
-def index():
-    return render_template('index.html')
-
-@app.route("/cards", methods=['POST'])
+@app.route("/", methods=['POST', 'GET'])
 
 def cards():
+    if request.method == "GET":
+        return render_template('cards.html', f_list=[], d_list=[])
+    
+    ## POST
     data = request.form['data']
     print(data)
     f_url = ""
     d_url = ""
-    if request.method == "POST":
-        f_url, d_url = initialize(data)
+    f_url, d_url = initialize(data)
 
     print(f_url)
     print(d_url)
@@ -92,7 +90,7 @@ def dolly_scrape(dolly_query):
     return dollys_res
 
 if __name__ == "__main__":
-    app.run()
+    app.run(debug=True)
 
 
 
