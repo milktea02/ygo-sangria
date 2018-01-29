@@ -3,6 +3,8 @@ import requests, sys, time
 from bs4 import BeautifulSoup
 from operator import itemgetter
 from multiprocessing import Pool
+import logging
+from logging.handlers import RotatingFileHandler
 
 app = Flask(__name__)
 
@@ -14,7 +16,7 @@ def cards():
     
     ## POST
     data = request.form['data']
-    print(data)
+    app.logger.info("Searching: " + data)
 
     card_name_query = card_init(data.lower())
     start = time.time()
@@ -26,7 +28,7 @@ def cards():
     if len(d) > 10:
         d = d[:10]
     end = time.time()
-    print("Time in seconds:", end-start)
+    app.logger.info("Time: " + str(round(end - start, 2)))
     return render_template('cards.html', f_list = f, d_list = d)
 
 def card_init(card_name):
@@ -195,6 +197,9 @@ def remove_trailing_comma(string):
 
 
 if __name__ == "__main__":
+    handler = RotatingFileHandler('cards.log', maxBytes=10000, backupCount=1)
+    handler.setLevel(logging.INFO)
+    app.logger.addHandler(handler)
     app.run(debug=True)
 
 
