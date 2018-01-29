@@ -5,7 +5,7 @@ Web scraper for Canadian YGO card sellers:
 - Face to Face Games
 - Dollys Toys & Games
 
-You can check it out on https://ygo-sangria.herokuapp.com/ or use the CLI
+You can check it out on https://ygo-sangria.herokuapp.com/ or use the CLI below
 
 ### What does it do
 - So far it doesn't do anything other than gather information from both sites and prints it to console
@@ -50,7 +50,6 @@ Near Mint,      |English        |CAD$ 0.25      |3 in-stock
 
 ### Limitations
 - it's slow as hell
-- Doesn't support pagination, ie. it only looks at first page
 - if f2f or dollys ever changes their theme RIP
 - only takes first card available from booster/deck, eg if near mint and slightly played are available for purchase it'll list the near mint one because it is first
 
