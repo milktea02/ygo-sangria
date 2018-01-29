@@ -169,8 +169,9 @@ def pagination(soup):
     return pages
 
 def check_is_card(query_card, result_card):
-    query_card = query_card.replace("+", " ")
-    result_card = result_card.lower().replace("\"", "")
+    ## too lazy to figure out regex
+    query_card = query_card.replace("+", " ").replace("\"", "").replace(":", "").replace("\'", "")
+    result_card = result_card.lower().replace("\"", "").replace(":", "").replace("\'", "")
     if query_card not in result_card:
         return False
     return True
