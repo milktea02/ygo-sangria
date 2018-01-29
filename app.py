@@ -92,7 +92,7 @@ def dolly_scrape(dolly_query):
     return dollys_res
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run()
 
 
 
