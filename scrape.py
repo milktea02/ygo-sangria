@@ -33,6 +33,9 @@ def f2f_scrape(card_name_query):
     response = requests.get(url)
     html = response.content
     soup = BeautifulSoup(html, 'html.parser')
+    content_table = soup.find('table', attrs={'class': 'invisible-table products_table'})
+    if content_table == None:
+        return f2f_res
     pages = pagination(soup)
     # Do we need to paginate?
     if pages > 0:
@@ -93,6 +96,9 @@ def dolly_scrape(card_name_query):
     response = requests.get(url)
     html = response.content
     soup = BeautifulSoup(html, 'html.parser')
+    content_list = soup.find('ul', attrs={'class': 'product-results'})
+    if content_list == None:
+        return dollys_res
     pages = pagination(soup)
     dollys_res = dolly_scrape_helper(url, card_name_query)
 
@@ -102,7 +108,6 @@ def dolly_scrape(card_name_query):
         for i in range(1, pages+1):
             url = "http://www.dollys.ca/products/search?page={}&q={}".format(i, card_name_query)
             args.append((url, card_name_query))
-            #dollys_res.extend(dolly_scrape_helper(url, card_name_query)[0])
         results = p.starmap(dolly_scrape_helper, args)
         p.terminate()
         p.join()

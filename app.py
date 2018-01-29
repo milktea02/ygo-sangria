@@ -12,13 +12,12 @@ app = Flask(__name__)
 
 def cards():
     if request.method == "GET":
-        return render_template('cards.html', f_list=[], d_list=[])
+        return render_template('cards.html', f_list=[], d_list=[], card_name='', time=0)
     
     ## POST
     data = request.form['data']
-    app.logger.info("Searching: " + data)
-
     card_name_query = card_init(data.lower())
+    app.logger.info("Searching: " + data + " using query: " + card_name_query)
     start = time.time()
     f = f2f_scrape(card_name_query)
     d = dolly_scrape(card_name_query)
@@ -28,8 +27,9 @@ def cards():
     if len(d) > 10:
         d = d[:10]
     end = time.time()
-    app.logger.info("Time: " + str(round(end - start, 2)))
-    return render_template('cards.html', f_list = f, d_list = d)
+    load_time = str(round(end-start,2))
+    app.logger.info("Time: " + load_time)
+    return render_template('cards.html', f_list = f, d_list = d, card_name=data, time=load_time)
 
 def card_init(card_name):
     card_name_query = card_name.replace(' ', '+')
@@ -45,6 +45,9 @@ def f2f_scrape(card_name_query):
     response = requests.get(url)
     html = response.content
     soup = BeautifulSoup(html, 'html.parser')
+    content_table = soup.find('table', attrs={'class': 'invisible-table products_table'})
+    if content_table == None:
+        return f2f_res
     pages = pagination(soup)
     # Do we need to paginate?
     if pages > 0:
@@ -105,6 +108,9 @@ def dolly_scrape(card_name_query):
     response = requests.get(url)
     html = response.content
     soup = BeautifulSoup(html, 'html.parser')
+    content_list = soup.find('ul', attrs={'class': 'product-results'}) 
+    if content_list == None:
+        return dollys_res
     pages = pagination(soup)
     dollys_res = dolly_scrape_helper(url, card_name_query)
 
@@ -114,7 +120,6 @@ def dolly_scrape(card_name_query):
         for i in range(1, pages+1):
             url = "http://www.dollys.ca/products/search?page={}&q={}".format(i, card_name_query)
             args.append((url, card_name_query))
-            #dollys_res.extend(dolly_scrape_helper(url, card_name_query)[0])
         results = p.starmap(dolly_scrape_helper, args)
         p.terminate()
         p.join()
@@ -124,7 +129,7 @@ def dolly_scrape(card_name_query):
         dollys_res = dolly_scrape_helper(url, card_name_query)
 
     
-    dollys_res.sort(key=itemgetter(3))
+    #dollys_res.sort(key=itemgetter(3))
     return dollys_res
 
 def dolly_scrape_helper(url, card_name_query):
