@@ -1,8 +1,7 @@
 from flask import Flask, render_template, request
 import requests, sys
 from bs4 import BeautifulSoup
-from colorama import init , Fore, Style
-init(autoreset=True)
+from operator import itemgetter
 
 app = Flask(__name__)
 
@@ -51,19 +50,24 @@ def f2f_scrape(f2f_query):
     soup = BeautifulSoup(html, 'html.parser')
     content_table = soup.find('table', attrs={'class': 'invisible-table products_table'})
     f2f_res = []
+    #traverse each table row <tr>
     for row in content_table.findAll('tr'):
         for meta_td in row.findAll('td', attrs={'class': 'meta'}): 
             cell_list_raw = []
             cell_list = []
+            # For whatever reason f2f renders empty cells so we need to check
             if meta_td == '':
                 continue;
             cell_list_raw = (meta_td.get_text(';', strip=True).split(';'))
-            if cell_list_raw[2] == 'No conditions in stock.':
+            if cell_list_raw[2] == 'No conditions in stock.': 
                 cell_list = cell_list_raw[:2]
-                cell_list.extend(['-', cell_list_raw[3], '0'])
+                cell_list.extend(['-', remove_cad(cell_list_raw[3]), '0'])
             else:
-                cell_list = cell_list_raw[:5]
+                cell_list = cell_list_raw[:3]
+                cell_list.append(remove_cad(cell_list_raw[3]))
+                cell_list.append(keep_nums(cell_list_raw[4]))
             f2f_res.append(cell_list)
+    f2f_res.sort(key=itemgetter(3))
     return f2f_res
 
 #####################
@@ -76,6 +80,7 @@ def dolly_scrape(dolly_query):
     soup = BeautifulSoup(html, 'html.parser')
     content_list = soup.find('ul', attrs={'class': 'product-results'}) 
     dollys_res = []
+    #sweet jesus unordered lists <ul> <li> <li> .....
     for li in content_list.findAll('li'):
         li_list_raw = []
         li_list = []
@@ -85,9 +90,31 @@ def dolly_scrape(dolly_query):
             li_list.extend(['-', li_list_raw[5], '0'])
         else:
             li_list = li_list_raw[:2]
-            li_list.extend([li_list_raw[4], li_list_raw[2], li_list_raw[5]])
+            li_list.extend([remove_trailing_comma(li_list_raw[4]), remove_cad(li_list_raw[2]), keep_nums(li_list_raw[5], False)])
         dollys_res.append(li_list)
+    dollys_res.sort(key=itemgetter(3))
     return dollys_res
+
+def remove_cad(cad):
+    '''
+    Remove the CAD$ from CAD$ 0.99
+    '''
+    return cad.replace('CAD$ ', '')
+
+def keep_nums(stock, f = True):
+    '''
+    Only keep the quanity number
+    f: x 5 -> 5
+    d: 1 in-stock -> 1
+    '''
+    if f:
+        return stock.replace('x ', '')
+    return stock.replace(' in-stock', '')
+
+def remove_trailing_comma(string):
+    if len(string) > 0:
+        return string[:-1]
+    return ""
 
 if __name__ == "__main__":
     app.run(debug=True)

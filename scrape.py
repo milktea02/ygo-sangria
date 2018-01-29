@@ -1,6 +1,7 @@
 import requests, sys
 from bs4 import BeautifulSoup
 from colorama import init , Fore, Style
+from operator import itemgetter
 init(autoreset=True)
 
 ####################################################
@@ -48,8 +49,11 @@ def f2f_scrape(f2f_query):
                 cell_list = cell_list_raw[:2]
                 cell_list.extend(['-', cell_list_raw[3], '0'])
             else:
-                cell_list = cell_list_raw[:5]
+                cell_list = cell_list_raw[:3]
+                cell_list.append(remove_cad(cell_list_raw[3]))
+                cell_list.append(keep_nums(cell_list_raw[4]))
             f2f_res.append(cell_list)
+    f2f_res.sort(key=itemgetter(3))
     return f2f_res
 
 #####################
@@ -72,9 +76,36 @@ def dolly_scrape(dolly_query):
             li_list.extend(['-', li_list_raw[5], '0'])
         else:
             li_list = li_list_raw[:2]
-            li_list.extend([li_list_raw[4], li_list_raw[2], li_list_raw[5]])
+            li_list.extend([remove_trailing_comma(li_list_raw[4]), remove_cad(li_list_raw[2]), keep_nums(li_list_raw[5], False)])
         dollys_res.append(li_list)
+    dollys_res.sort(key=itemgetter(3))
     return dollys_res
+
+#######################
+## STUFF TO PRETTIFY ##
+#######################
+
+def remove_cad(cad):
+    '''
+    Remove the CAD$ from CAD$ 0.99
+    '''
+    return cad.replace('CAD$ ', '')
+
+def keep_nums(stock, f = True):
+    '''
+    Only keep the quanity number
+    f: x 5 -> 5
+    d: 1 in-stock -> 1
+    '''
+    if f:
+        return stock.replace('x ', '')
+    return stock.replace(' in-stock', '')
+
+def remove_trailing_comma(string):
+    if len(string) > 0:
+        return string[:-1]
+    return ""
+
 
 if __name__ == '__main__':
     print("Starting", sys.argv[0], "...")
