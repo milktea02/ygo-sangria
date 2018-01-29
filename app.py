@@ -125,9 +125,11 @@ def dolly_scrape_helper(url, card_name_query):
 
 def pagination(soup):
     pages = 0
-    list_page_num = soup.select("div.pagination")[0].get_text(';', strip=True).split(';')
-    if len(list_page_num) > 1:
-        pages = int(soup.select("div.pagination")[0].get_text(';', strip=True).split(';')[-2])
+    pagination_div_list = soup.select("div.pagination")
+    if len(pagination_div_list) > 0:
+        list_page_num = pagination_div_list[0].get_text(';', strip=True).split(';')
+        if len(list_page_num) > 1:
+            pages = int(soup.select("div.pagination")[0].get_text(';', strip=True).split(';')[-2])
     return pages
 
 def check_is_card(query_card, result_card):
