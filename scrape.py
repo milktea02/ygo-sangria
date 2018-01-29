@@ -34,31 +34,30 @@ def f2f_scrape(card_name_query):
     html = response.content
     soup = BeautifulSoup(html, 'html.parser')
     pages = pagination(soup)
-    f2f_res = f2f_scrape_helper(soup)
     # Do we need to paginate?
     if pages > 0:
-        soups = []
-        print("Number of pages:", pages)
-        print("Number of Pools:", pages - 1)
-        p = Pool(pages - 1)
+        p = Pool(pages)
         urls = []
         cards = []
-        for i in range(2, pages + 1):
+        for i in range(1, pages + 1):
             url = "http://www.facetofacegames.com/products/search?page={}&query={}".format(i, card_name_query)
-            urls.append(url)
-        responses = p.map(requests.get, urls)
+            urls.append((url, card_name_query))
+        results = p.starmap(f2f_scrape_helper, urls)
         p.terminate()
         p.join()
-        html_contents = map(lambda x: x.content, responses)
-        soups = map(BeautifulSoup, html_contents)      
-        results = list(map(f2f_scrape_helper, soups))
         for x in results:
             f2f_res.extend(x)
+    else:
+        f2f_res = f2f_scrape_helper(url, card_name_query)
+    
     f2f_res.sort(key=itemgetter(3))
     return f2f_res
 
-def f2f_scrape_helper(soup):
+def f2f_scrape_helper(url, card_name_query):
     result_list = []
+    response = requests.get(url)
+    html = response.content
+    soup = BeautifulSoup(html, 'html.parser')
     content_table = soup.find('table', attrs={'class': 'invisible-table products_table'})
     for row in content_table.findAll('tr'):
         for meta_td in row.findAll('td', attrs={'class': 'meta'}): 
@@ -91,12 +90,27 @@ def f2f_scrape_helper(soup):
 def dolly_scrape(card_name_query):
     dollys_res = []
     url = "http://www.dollys.ca/products/search?q={}".format(card_name_query)
-    dollys_res, pages = dolly_scrape_helper(url, card_name_query)
+    response = requests.get(url)
+    html = response.content
+    soup = BeautifulSoup(html, 'html.parser')
+    pages = pagination(soup)
+    dollys_res = dolly_scrape_helper(url, card_name_query)
 
     if pages > 0:
-        for i in range(2, pages+1):
+        p = Pool(pages)
+        args = []
+        for i in range(1, pages+1):
             url = "http://www.dollys.ca/products/search?page={}&q={}".format(i, card_name_query)
-            dollys_res.extend(dolly_scrape_helper(url, card_name_query)[0])
+            args.append((url, card_name_query))
+            #dollys_res.extend(dolly_scrape_helper(url, card_name_query)[0])
+        results = p.starmap(dolly_scrape_helper, args)
+        p.terminate()
+        p.join()
+        for x in results:
+            dollys_res.extend(x)
+    else:
+        dollys_res = dolly_scrape_helper(url, card_name_query)
+
     
     dollys_res.sort(key=itemgetter(3))
     return dollys_res
@@ -122,8 +136,7 @@ def dolly_scrape_helper(url, card_name_query):
             li_list = li_list_raw[:2]
             li_list.extend([remove_trailing_comma(li_list_raw[4]), remove_cad(li_list_raw[2]), keep_nums(li_list_raw[5], False)])
         result_list.append(li_list)
-    pages = pagination(soup)
-    return result_list, pages
+    return result_list
 
 #############
 ## HELPERS ##
@@ -176,9 +189,9 @@ if __name__ == '__main__':
     print("...")
 
     if len(sys.argv) < 2:
-        print("Usage: python scrape.py 'card name'")
+        print(Fore.RED + "Usage: python scrape.py 'card name'")
         print("\twhere the card name should not have any special characters")
-        print("teg. $ python scrape.py 'maxx c'")
+        print("\teg. $ python scrape.py 'maxx c'")
         print("exiting....")
         exit()
 
@@ -190,7 +203,7 @@ if __name__ == '__main__':
     dolly = dolly_scrape(card_name_query)
 
     print() 
-    print("NAME | PACK |\nCONDITION | PRICE | STOCK")
+    print(Fore.GREEN + "NAME | PACK |\nCONDITION | PRICE | STOCK")
     print(Fore.CYAN + "=========== SHOWING RESULTS FOR FACE TO FACE GAMES ==============")
     for row in f2f:
         print(row[0] + "\t|" + row[1])
