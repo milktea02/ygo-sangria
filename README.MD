@@ -52,8 +52,9 @@ Near Mint,      |English        |CAD$ 0.25      |3 in-stock
 - only takes first card available from booster/deck, eg if near mint and slightly played are available for purchase it'll list the near mint one because it is first
 
 ### Requirements:
-- python 2.7 (not compatible with python 3.xx)
+- python 3.6 
 - `pip install beautifulsoup4` https://www.crummy.com/software/BeautifulSoup/bs4/doc/
+- `pip install -r requirements.txt`
 
 You can run it using virtualenv to keep things clean https://virtualenv.pypa.io/en/stable/
 

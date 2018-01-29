@@ -1,5 +1,3 @@
-from __future__ import print_function
-
 import requests, sys
 from bs4 import BeautifulSoup
 from colorama import init , Fore, Style
