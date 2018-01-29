@@ -46,7 +46,7 @@ def f2f_scrape(f2f_query):
             if meta_td == '':
                 continue;
             cell_list_raw = (meta_td.get_text(';', strip=True).split(';'))
-    	    if cell_list_raw[2] == 'No conditions in stock.': 
+            if cell_list_raw[2] == 'No conditions in stock.': 
                 cell_list = cell_list_raw[:2]
                 cell_list.extend(['-', cell_list_raw[3], '0'])
             else:
@@ -106,5 +106,8 @@ if __name__ == '__main__':
     for row in dolly:
         print(row[0] + "\t|" + row[1])
         print(row[2] + "\t|" + row[3] + "\t|" + row[4] + "\n")
+
+    results = f2f + dolly
+    print(results)
 
 
