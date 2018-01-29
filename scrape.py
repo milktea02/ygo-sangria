@@ -18,25 +18,33 @@ init(autoreset=True)
 ## - currently cannot support pagination - only looks at first page results (rip MST)
 ####################################################
 
-def initialize(card_name):
-    query = card_name.replace(' ', '+')
-    f2f_query = 'http://www.facetofacegames.com/products/search?query='+query
-    dolly_query = 'http://www.dollys.ca/products/search?q='+query
-    print("Using queries:\n", f2f_query, "\n", dolly_query)
-
-    return(f2f_query, dolly_query)
+def card_init(card_name):
+    card_name_query = card_name.replace(' ', '+')
+    return card_name_query
 
 
 #################################
 ## SCRAPING FACE TO FACE GAMES ##
 #################################
-def f2f_scrape(f2f_query):
-    response = requests.get(f2f_query)
+def f2f_scrape(card_name_query):
+    f2f_res = []
+    url = "http://www.facetofacegames.com/products/search?query={}".format(card_name_query)
+    f2f_res, pages = f2f_scrape_helper(url, card_name_query)
+    # Do we need to paginate?
+    if pages > 0:
+        for i in range(2, pages+1):
+            url = "http://www.facetofacegames.com/products/search?page={}&query={}".format(i, card_name)
+            f2f_res.extend(f2f_scrape_helper(url, card_name_query)[0])
+
+    f2f_res.sort(key=itemgetter(3))
+    return f2f_res
+
+def f2f_scrape_helper(url, card_name_query):
+    result_list = []
+    response = requests.get(url)
     html = response.content
     soup = BeautifulSoup(html, 'html.parser')
     content_table = soup.find('table', attrs={'class': 'invisible-table products_table'})
-    f2f_res = []
-    #traverse each table row <tr>
     for row in content_table.findAll('tr'):
         for meta_td in row.findAll('td', attrs={'class': 'meta'}): 
             cell_list_raw = []
@@ -44,24 +52,44 @@ def f2f_scrape(f2f_query):
             # For whatever reason f2f renders empty cells so we need to check
             if meta_td == '':
                 continue;
-            cell_list_raw = (meta_td.get_text(';', strip=True).split(';'))
-            if cell_list_raw[2] == 'No conditions in stock.': 
+            cell_list_raw = (meta_td.get_text('%', strip=True).split('%'))
+            if not (check_is_card(card_name_query, cell_list_raw[0])):
+                continue;
+            if cell_list_raw[2].lower() == 'no conditions in stock.': 
                 cell_list = cell_list_raw[:2]
-                cell_list.extend(['-', cell_list_raw[3], '0'])
+                if len(cell_list_raw) == 3:
+                    cell_list.extend(['-', 0, '0'])
+                else:
+                    cell_list.extend(['-', remove_cad(cell_list_raw[3]), '0'])
             else:
                 cell_list = cell_list_raw[:3]
                 cell_list.append(remove_cad(cell_list_raw[3]))
                 cell_list.append(keep_nums(cell_list_raw[4]))
-            f2f_res.append(cell_list)
-    f2f_res.sort(key=itemgetter(3))
-    return f2f_res
+            result_list.append(cell_list)
+
+    pages = pagination(soup)
+    return result_list, pages
 
 #####################
 ## SCRAPING DOLLYS ##
 #####################
 
-def dolly_scrape(dolly_query):
-    response = requests.get(dolly_query)
+def dolly_scrape(card_name_query):
+    dollys_res = []
+    url = "http://www.dollys.ca/products/search?q={}".format(card_name_query)
+    dollys_res, pages = dolly_scrape_helper(url, card_name_query)
+
+    if pages > 0:
+        for i in range(2, pages+1):
+            url = "http://www.dollys.ca/products/search?page={}&q={}".format(i, card_name)
+            dollys_res.extend(dolly_scrape_helper(url, card_name_query)[0])
+    
+    dollys_res.sort(key=itemgetter(3))
+    return dollys_res
+
+def dolly_scrape_helper(url, card_name_query):
+    result_list = []
+    response = requests.get(url)
     html = response.content
     soup = BeautifulSoup(html, 'html.parser')
     content_list = soup.find('ul', attrs={'class': 'product-results'}) 
@@ -71,15 +99,35 @@ def dolly_scrape(dolly_query):
         li_list_raw = []
         li_list = []
         li_list_raw = li.get_text(';', strip=True).split(';')
+        if not (check_is_card(card_name_query, li_list_raw[0])):
+            continue;
         if li_list_raw[2] == 'Out of stock':
             li_list = li_list_raw[:2]
-            li_list.extend(['-', li_list_raw[5], '0'])
+            li_list.extend(['-', remove_cad(li_list_raw[5]), '0'])
         else:
             li_list = li_list_raw[:2]
             li_list.extend([remove_trailing_comma(li_list_raw[4]), remove_cad(li_list_raw[2]), keep_nums(li_list_raw[5], False)])
-        dollys_res.append(li_list)
-    dollys_res.sort(key=itemgetter(3))
-    return dollys_res
+        result_list.append(li_list)
+    pages = pagination(soup)
+    return result_list, pages
+
+#############
+## HELPERS ##
+#############
+
+def pagination(soup):
+    pages = 0
+    list_page_num = soup.select("div.pagination")[0].get_text(';', strip=True).split(';')
+    if len(list_page_num) > 1:
+        pages = int(soup.select("div.pagination")[0].get_text(';', strip=True).split(';')[-2])
+    return pages
+
+def check_is_card(query_card, result_card):
+    query_card = query_card.replace("+", " ")
+    result_card = result_card.lower().replace("\"", "")
+    if query_card not in result_card:
+        return False
+    return True
 
 #######################
 ## STUFF TO PRETTIFY ##
@@ -89,7 +137,7 @@ def remove_cad(cad):
     '''
     Remove the CAD$ from CAD$ 0.99
     '''
-    return cad.replace('CAD$ ', '')
+    return float(cad.replace('CAD$ ', ''))
 
 def keep_nums(stock, f = True):
     '''
@@ -118,25 +166,20 @@ if __name__ == '__main__':
         print("exiting....")
         exit()
 
-    card_name = sys.argv[1]
+    card_name = sys.argv[1].lower()
     print("Searching for:", card_name)
-    f, d = initialize(card_name)
-    f2f = f2f_scrape(f)
-    dolly = dolly_scrape(d)
+    card_name_query = card_init(card_name)
+    f2f = f2f_scrape(card_name_query)
+    dolly = dolly_scrape(card_name_query)
 
     print() 
     print("NAME | PACK |\nCONDITION | PRICE | STOCK")
     print(Fore.CYAN + "=========== SHOWING RESULTS FOR FACE TO FACE GAMES ==============")
     for row in f2f:
         print(row[0] + "\t|" + row[1])
-        print(row[2] + "\t|" + row[3] + "\t|" + row[4] + "\n")
+        print(row[2] + "\t|" + str(row[3]) + "\t|" + row[4] + "\n")
 
     print(Fore.CYAN + "\n=========== SHOWING RESULTS FOR DOLLYS TOYS & GAMES ==============")
     for row in dolly:
         print(row[0] + "\t|" + row[1])
-        print(row[2] + "\t|" + row[3] + "\t|" + row[4] + "\n")
-
-    results = f2f + dolly
-    print(results)
-
-
+        print(row[2] + "\t|" + str(row[3]) + "\t|" + row[4] + "\n")
