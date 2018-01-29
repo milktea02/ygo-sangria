@@ -33,7 +33,7 @@ def f2f_scrape(card_name_query):
     # Do we need to paginate?
     if pages > 0:
         for i in range(2, pages+1):
-            url = "http://www.facetofacegames.com/products/search?page={}&query={}".format(i, card_name)
+            url = "http://www.facetofacegames.com/products/search?page={}&query={}".format(i, card_name_query)
             f2f_res.extend(f2f_scrape_helper(url, card_name_query)[0])
 
     f2f_res.sort(key=itemgetter(3))
@@ -81,7 +81,7 @@ def dolly_scrape(card_name_query):
 
     if pages > 0:
         for i in range(2, pages+1):
-            url = "http://www.dollys.ca/products/search?page={}&q={}".format(i, card_name)
+            url = "http://www.dollys.ca/products/search?page={}&q={}".format(i, card_name_query)
             dollys_res.extend(dolly_scrape_helper(url, card_name_query)[0])
     
     dollys_res.sort(key=itemgetter(3))
