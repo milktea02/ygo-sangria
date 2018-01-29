@@ -1,13 +1,16 @@
+
 ### YGO-Sangria
 
 Web scraper for Canadian YGO card sellers:
 - Face to Face Games
 - Dollys Toys & Games
 
+You can check it out on https://ygo-sangria.herokuapp.com/ or use the CLI
+
 ### What does it do
 - So far it doesn't do anything other than gather information from both sites and prints it to console
 
-### Usage and Example
+### CLI Usage and Example
 ```
 $ python scrape.py 'deskbot 002'
 Starting scrape.py ...
