@@ -32,7 +32,7 @@ def cards():
     return render_template('cards.html', f_list = f, d_list = d, card_name=data, time=load_time)
 
 def card_init(card_name):
-    card_name_query = card_name.replace(' ', '+')
+    card_name_query = card_name.replace(' ', '+').replace('&', '%26')
     return card_name_query
 
 
@@ -81,7 +81,7 @@ def f2f_scrape_helper(url, card_name_query):
             # For whatever reason f2f renders empty cells so we need to check
             if meta_td == '':
                 continue;
-            cell_list_raw = (meta_td.get_text('%', strip=True).split('%'))
+            cell_list_raw = (meta_td.get_text('@', strip=True).split('@'))
             if not (check_is_card(card_name_query, cell_list_raw[0])):
                 continue;
             if cell_list_raw[2].lower() == 'no conditions in stock.': 
@@ -108,7 +108,7 @@ def dolly_scrape(card_name_query):
     response = requests.get(url)
     html = response.content
     soup = BeautifulSoup(html, 'html.parser')
-    content_list = soup.find('ul', attrs={'class': 'product-results'}) 
+    content_list = soup.find('ul', attrs={'class': 'product-results'})
     if content_list == None:
         return dollys_res
     pages = pagination(soup)
@@ -129,7 +129,7 @@ def dolly_scrape(card_name_query):
         dollys_res = dolly_scrape_helper(url, card_name_query)
 
     
-    #dollys_res.sort(key=itemgetter(3))
+    dollys_res.sort(key=itemgetter(3))
     return dollys_res
 
 def dolly_scrape_helper(url, card_name_query):
@@ -143,7 +143,7 @@ def dolly_scrape_helper(url, card_name_query):
     for li in content_list.findAll('li'):
         li_list_raw = []
         li_list = []
-        li_list_raw = li.get_text(';', strip=True).split(';')
+        li_list_raw = li.get_text('@', strip=True).split('@')
         if not (check_is_card(card_name_query, li_list_raw[0])):
             continue;
         if li_list_raw[2] == 'Out of stock':
@@ -165,13 +165,17 @@ def pagination(soup):
     if len(pagination_div_list) > 0:
         list_page_num = pagination_div_list[0].get_text(';', strip=True).split(';')
         if len(list_page_num) > 1:
-            pages = int(soup.select("div.pagination")[0].get_text(';', strip=True).split(';')[-2])
+            pages = list_page_num[-2]
+            if type(pages) == int:
+                pages = int(pages)
+            else:
+                pages = int(list_page_num[-3])
     return pages
 
 def check_is_card(query_card, result_card):
     ## too lazy to figure out regex
     query_card = query_card.replace("+", " ").replace("\"", "").replace(":", "").replace("\'", "")
-    result_card = result_card.lower().replace("\"", "").replace(":", "").replace("\'", "")
+    result_card = result_card.lower().replace("\"", "").replace(":", "").replace("\'", "").replace("&", "%26")
     if query_card not in result_card:
         return False
     return True
