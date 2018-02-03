@@ -11,37 +11,40 @@ app = Flask(__name__)
 @app.route("/", methods=['POST', 'GET'])
 
 def cards():
-    hide_zero = request.form.getlist('hide_zero')
-    app.logger.info("Should hide zero? ", repr(hide_zero))
+
     if request.method == "GET":
         return render_template('cards.html', f_list=[], d_list=[], card_name='', time=0)
     
     ## POST
+    hide_zero = False
+    if request.form.get('hide_zero'):
+        hide_zero = True
+    app.logger.info("Should hide zero? " + repr(hide_zero))
     data = request.form.get('data')
     card_name_query = card_init(data.lower())
     app.logger.info("Searching: " + data + " using query: " + card_name_query)
     start = time.time()
-    f = f2f_scrape(card_name_query)
-    d = dolly_scrape(card_name_query)
+    f = f2f_scrape(card_name_query, hide_zero)
+    d = dolly_scrape(card_name_query, hide_zero)
 
     if len(f) > 10:
         f = f[:10]
     if len(d) > 10:
         d = d[:10]
     end = time.time()
-    load_time = str(round(end-start,2))
+    load_time = repr(round(end-start,2))
     app.logger.info("Time: " + load_time)
     return render_template('cards.html', f_list = f, d_list = d, card_name=data, time=load_time)
 
 def card_init(card_name):
-    card_name_query = card_name.replace(' ', '+').replace('&', '%26')
+    card_name_query = card_name.replace(' ', '+').replace('&', '%26').strip()
     return card_name_query
 
 
 #################################
 ## SCRAPING FACE TO FACE GAMES ##
 #################################
-def f2f_scrape(card_name_query):
+def f2f_scrape(card_name_query, hide_zero):
     f2f_res = []
     url = "http://www.facetofacegames.com/products/search?query={}".format(card_name_query)
     response = requests.get(url)
@@ -54,57 +57,65 @@ def f2f_scrape(card_name_query):
     # Do we need to paginate?
     if pages > 0:
         p = Pool(pages)
-        urls = []
+        args = []
         cards = []
         for i in range(1, pages + 1):
             url = "http://www.facetofacegames.com/products/search?page={}&query={}".format(i, card_name_query)
-            urls.append((url, card_name_query))
-        results = p.starmap(f2f_scrape_helper, urls)
+            args.append((url, card_name_query, hide_zero))
+        results = p.starmap(f2f_scrape_helper, args)
         p.terminate()
         p.join()
         for x in results:
             f2f_res.extend(x)
     else:
-        f2f_res = f2f_scrape_helper(url, card_name_query)
+        f2f_res = f2f_scrape_helper(url, card_name_query, hide_zero)
     
     f2f_res.sort(key=itemgetter(3))
     return f2f_res
 
-def f2f_scrape_helper(url, card_name_query):
+def f2f_scrape_helper(url, card_name_query, hide_zero):
     result_list = []
     response = requests.get(url)
     html = response.content
     soup = BeautifulSoup(html, 'html.parser')
     content_table = soup.find('table', attrs={'class': 'invisible-table products_table'})
-    for row in content_table.findAll('tr'):
-        for meta_td in row.findAll('td', attrs={'class': 'meta'}): 
+    for content_row in content_table.findAll('tr'):
+        for meta_td in content_row.findAll('td', attrs={'class': 'meta'}): 
             cell_list_raw = []
-            cell_list = []
+            row = []
             # For whatever reason f2f renders empty cells so we need to check
             if meta_td == '':
-                continue;
+                continue; # skip this row
             cell_list_raw = (meta_td.get_text('@', strip=True).split('@'))
-            if not (check_is_card(card_name_query, cell_list_raw[0])):
+            card_name = cell_list_raw[0]
+            card_set = cell_list_raw[1]
+            card_cond = cell_list_raw[2]
+            card_price = 0
+            card_quantity = 0
+            if not (check_is_card(card_name_query, card_name)):
                 continue;
-            if cell_list_raw[2].lower() == 'no conditions in stock.': 
-                cell_list = cell_list_raw[:2]
+            if card_cond.lower() == 'no conditions in stock.': 
+                if hide_zero:
+                    continue; # skip this card
+                row = [card_name, card_set]
                 if len(cell_list_raw) == 3:
-                    cell_list.extend(['-', 0, '0'])
+                    row.extend(['-', 0, '0'])
                 else:
-                    cell_list.extend(['-', remove_cad(cell_list_raw[3]), '0'])
+                    card_price = remove_cad(cell_list_raw[3])
+                    row.extend(['-', card_price, '0'])
             else:
-                cell_list = cell_list_raw[:3]
-                cell_list.append(remove_cad(cell_list_raw[3]))
-                cell_list.append(keep_nums(cell_list_raw[4]))
-            result_list.append(cell_list)
-
+                card_cond = cell_list_raw[2]
+                card_price = (remove_cad(cell_list_raw[3]))
+                card_quantity = (keep_nums(cell_list_raw[4]))
+                row = [card_name, card_set, card_cond, card_price, card_quantity]
+            result_list.append(row)
     return result_list
 
 #####################
 ## SCRAPING DOLLYS ##
 #####################
 
-def dolly_scrape(card_name_query):
+def dolly_scrape(card_name_query, hide_zero):
     dollys_res = []
     url = "http://www.dollys.ca/products/search?q={}".format(card_name_query)
     response = requests.get(url)
@@ -114,27 +125,26 @@ def dolly_scrape(card_name_query):
     if content_list == None:
         return dollys_res
     pages = pagination(soup)
-    dollys_res = dolly_scrape_helper(url, card_name_query)
 
     if pages > 0:
         p = Pool(pages)
         args = []
         for i in range(1, pages+1):
             url = "http://www.dollys.ca/products/search?page={}&q={}".format(i, card_name_query)
-            args.append((url, card_name_query))
+            args.append((url, card_name_query, hide_zero))
         results = p.starmap(dolly_scrape_helper, args)
         p.terminate()
         p.join()
         for x in results:
             dollys_res.extend(x)
     else:
-        dollys_res = dolly_scrape_helper(url, card_name_query)
+        dollys_res = dolly_scrape_helper(url, card_name_query, hide_zero)
 
     
     dollys_res.sort(key=itemgetter(3))
     return dollys_res
 
-def dolly_scrape_helper(url, card_name_query):
+def dolly_scrape_helper(url, card_name_query, hide_zero):
     result_list = []
     response = requests.get(url)
     html = response.content
@@ -142,18 +152,32 @@ def dolly_scrape_helper(url, card_name_query):
     content_list = soup.find('ul', attrs={'class': 'product-results'}) 
     dollys_res = []
     #sweet jesus unordered lists <ul> <li> <li> .....
+    card_name = ''
+    card_set = ''
+    card_cond = ''
+    card_price = 0
+    card_quantity = 0
     for li in content_list.findAll('li'):
         li_list_raw = []
         li_list = []
         li_list_raw = li.get_text('@', strip=True).split('@')
-        if not (check_is_card(card_name_query, li_list_raw[0])):
+        card_name = li_list_raw[0];
+        card_set = li_list_raw[1]
+        card_cond = li_list_raw[2]
+        li_list = [card_name, card_set]
+        if not (check_is_card(card_name_query, card_name)):
             continue;
-        if li_list_raw[2] == 'Out of stock':
-            li_list = li_list_raw[:2]
+        if card_cond == 'Out of stock':
+            app.logger.info("Card is out of stock")
+            if hide_zero:
+                app.logger.info("skipping card that is out of stock")
+                continue; #skip this row
             li_list.extend(['-', remove_cad(li_list_raw[5]), '0'])
         else:
-            li_list = li_list_raw[:2]
-            li_list.extend([remove_trailing_comma(li_list_raw[4]), remove_cad(li_list_raw[2]), keep_nums(li_list_raw[5], False)])
+            card_cond = remove_trailing_comma(li_list_raw[4])
+            card_price = remove_cad(li_list_raw[2])
+            card_quantity = keep_nums(li_list_raw[5], False)
+            li_list.extend([card_cond, card_price, card_quantity])
         result_list.append(li_list)
     return result_list
 
@@ -168,9 +192,9 @@ def pagination(soup):
         list_page_num = pagination_div_list[0].get_text(';', strip=True).split(';')
         if len(list_page_num) > 1:
             pages = list_page_num[-2]
-            if type(pages) == int:
+            try:
                 pages = int(pages)
-            else:
+            except ValueError:
                 pages = int(list_page_num[-3])
     return pages
 
