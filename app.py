@@ -12,22 +12,32 @@ app = Flask(__name__)
 
 def cards():
 <<<<<<< HEAD
+<<<<<<< HEAD
 
 =======
     hide_zero = request.form.getlist('hide_zero')
     app.logger.info("Should hide zero? ", repr(hide_zero))
 >>>>>>> wip
+=======
+
+>>>>>>> add flag to no display out of stock cards
     if request.method == "GET":
         return render_template('cards.html', f_list=[], d_list=[], card_name='', time=0)
     
     ## POST
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> add flag to no display out of stock cards
     hide_zero = False
     if request.form.get('hide_zero'):
         hide_zero = True
     app.logger.info("Should hide zero? " + repr(hide_zero))
+<<<<<<< HEAD
 =======
 >>>>>>> wip
+=======
+>>>>>>> add flag to no display out of stock cards
     data = request.form.get('data')
     card_name_query = card_init(data.lower())
     app.logger.info("Searching: " + data + " using query: " + card_name_query)
@@ -94,8 +104,11 @@ def f2f_scrape_helper(url, card_name_query, hide_zero):
             # For whatever reason f2f renders empty cells so we need to check
             if meta_td == '':
                 continue; # skip this row
+<<<<<<< HEAD
             card_link = "http://www.facetofacegames.com/" + meta_td.a.get('href')
             app.logger.info("Link for this card: " + str(card_link))
+=======
+>>>>>>> add flag to no display out of stock cards
             cell_list_raw = (meta_td.get_text('@', strip=True).split('@'))
             card_name = cell_list_raw[0]
             card_set = cell_list_raw[1]
@@ -118,7 +131,10 @@ def f2f_scrape_helper(url, card_name_query, hide_zero):
                 card_price = (remove_cad(cell_list_raw[3]))
                 card_quantity = (keep_nums(cell_list_raw[4]))
                 row = [card_name, card_set, card_cond, card_price, card_quantity]
+<<<<<<< HEAD
             row.append(card_link)
+=======
+>>>>>>> add flag to no display out of stock cards
             result_list.append(row)
     return result_list
 
@@ -191,7 +207,10 @@ def dolly_scrape_helper(url, card_name_query, hide_zero):
             card_price = remove_cad(li_list_raw[2])
             card_quantity = keep_nums(li_list_raw[5], False)
             li_list.extend([card_cond, card_price, card_quantity])
+<<<<<<< HEAD
         li_list.append(card_link)
+=======
+>>>>>>> add flag to no display out of stock cards
         result_list.append(li_list)
     return result_list
 
