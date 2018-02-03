@@ -11,15 +11,23 @@ app = Flask(__name__)
 @app.route("/", methods=['POST', 'GET'])
 
 def cards():
+<<<<<<< HEAD
 
+=======
+    hide_zero = request.form.getlist('hide_zero')
+    app.logger.info("Should hide zero? ", repr(hide_zero))
+>>>>>>> wip
     if request.method == "GET":
         return render_template('cards.html', f_list=[], d_list=[], card_name='', time=0)
     
     ## POST
+<<<<<<< HEAD
     hide_zero = False
     if request.form.get('hide_zero'):
         hide_zero = True
     app.logger.info("Should hide zero? " + repr(hide_zero))
+=======
+>>>>>>> wip
     data = request.form.get('data')
     card_name_query = card_init(data.lower())
     app.logger.info("Searching: " + data + " using query: " + card_name_query)
