@@ -86,6 +86,8 @@ def f2f_scrape_helper(url, card_name_query, hide_zero):
             # For whatever reason f2f renders empty cells so we need to check
             if meta_td == '':
                 continue; # skip this row
+            card_link = "http://www.facetofacegames.com/" + meta_td.a.get('href')
+            app.logger.info("Link for this card: " + str(card_link))
             cell_list_raw = (meta_td.get_text('@', strip=True).split('@'))
             card_name = cell_list_raw[0]
             card_set = cell_list_raw[1]
@@ -108,6 +110,7 @@ def f2f_scrape_helper(url, card_name_query, hide_zero):
                 card_price = (remove_cad(cell_list_raw[3]))
                 card_quantity = (keep_nums(cell_list_raw[4]))
                 row = [card_name, card_set, card_cond, card_price, card_quantity]
+            row.append(card_link)
             result_list.append(row)
     return result_list
 
@@ -158,6 +161,8 @@ def dolly_scrape_helper(url, card_name_query, hide_zero):
     card_price = 0
     card_quantity = 0
     for li in content_list.findAll('li'):
+        app.logger.info("dolly's listing [li.a.get('href')]: " + str(li.a.get('href')))
+        card_link = "http://www.dollys.ca" + li.a.get('href')
         li_list_raw = []
         li_list = []
         li_list_raw = li.get_text('@', strip=True).split('@')
@@ -178,6 +183,7 @@ def dolly_scrape_helper(url, card_name_query, hide_zero):
             card_price = remove_cad(li_list_raw[2])
             card_quantity = keep_nums(li_list_raw[5], False)
             li_list.extend([card_cond, card_price, card_quantity])
+        li_list.append(card_link)
         result_list.append(li_list)
     return result_list
 
