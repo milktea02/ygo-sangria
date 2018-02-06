@@ -67,7 +67,6 @@ def f2f_scrape():
             f2f_res.extend(x)
     else:
         f2f_res = f2f_scrape_helper(response)
-    f2f_res = list(filter(None.__ne__, f2f_res))
     f2f_res.sort(key=itemgetter(3))
     return f2f_res
 
@@ -78,33 +77,27 @@ def f2f_scrape_helper(response):
     content_table = soup.find('table', attrs={'class': 'invisible-table products_table'})
     list_of_meta_td = []
     for row in content_table.findAll('tr'):
-        list_of_meta_td.extend(row.findAll('td', attrs={'class': 'meta'}))
-    p = Pool(len(list_of_meta_td))
-    result_list = p.map(f2f_row_processing, list_of_meta_td)
-    p.terminate()
-    p.join()
+        for meta_td in row.findAll('td', attrs={'class': 'meta'}): 
+            cell_list_raw = []
+            cell_list = []
+            # For whatever reason f2f renders empty cells so we need to check
+            if meta_td == '':
+                continue;
+            cell_list_raw = (meta_td.get_text('@', strip=True).split('@'))
+            if not (check_is_card(CARD_NAME_QUERY, cell_list_raw[0])):
+                continue;
+            if cell_list_raw[2].lower() == 'no conditions in stock.': 
+                cell_list = cell_list_raw[:2]
+                if len(cell_list_raw) == 3:
+                    cell_list.extend(['-', 0, '0'])
+                else:
+                    cell_list.extend(['-', remove_cad(cell_list_raw[3]), '0'])
+            else:
+                cell_list = cell_list_raw[:3]
+                cell_list.append(remove_cad(cell_list_raw[3]))
+                cell_list.append(keep_nums(cell_list_raw[4]))
+            result_list.append(cell_list)
     return result_list
-
-def f2f_row_processing(meta_td):
-    cell_list_raw = []
-    cell_list = []
-    # For whatever reason f2f renders empty cells so we need to check
-    if meta_td == '':
-        return;
-    cell_list_raw = (meta_td.get_text('@', strip=True).split('@'))
-    if not (check_is_card(CARD_NAME_QUERY, cell_list_raw[0])):
-        return;
-    if cell_list_raw[2].lower() == 'no conditions in stock.': 
-        cell_list = cell_list_raw[:2]
-        if len(cell_list_raw) == 3:
-            cell_list.extend(['-', 0, '0'])
-        else:
-            cell_list.extend(['-', remove_cad(cell_list_raw[3]), '0'])
-    else:
-        cell_list = cell_list_raw[:3]
-        cell_list.append(remove_cad(cell_list_raw[3]))
-        cell_list.append(keep_nums(cell_list_raw[4]))
-    return cell_list
 
 
 #####################
@@ -124,12 +117,12 @@ def dolly_scrape():
     dollys_res = dolly_scrape_helper(response)
 
     if pages > 0:
+        p = Pool(pages)
         urls = []
         for i in range(1, pages+1):
             url = "http://www.dollys.ca/products/search?page={}&q={}".format(i, CARD_NAME_QUERY)
             urls.append(url)
         responses = async_requests(urls)
-        p = Pool(pages)
         results = p.map(dolly_scrape_helper, responses)
         p.terminate()
         p.join()
@@ -137,7 +130,6 @@ def dolly_scrape():
             dollys_res.extend(x)
     else:
         dollys_res = dolly_scrape_helper(response)
-    dollys_res = list(filter(None.__ne__, dollys_res))
     dollys_res.sort(key=itemgetter(3))
     return dollys_res
 
@@ -148,27 +140,20 @@ def dolly_scrape_helper(response):
     content_list = soup.find('ul', attrs={'class': 'product-results'}) 
     dollys_res = []
     #sweet jesus unordered lists <ul> <li> <li> .....
-    list_of_li = content_list.findAll('li')
-    p = Pool(len(list_of_li))
-    result_list = p.map(dolly_row_processing, list_of_li)
-    p.terminate()
-    p.join()
-
+    for li in content_list.findAll('li'):
+        li_list_raw = []
+        li_list = []
+        li_list_raw = li.get_text('@', strip=True).split('@')
+        if not (check_is_card(CARD_NAME_QUERY, li_list_raw[0])):
+            continue;
+        if li_list_raw[2] == 'Out of stock':
+            li_list = li_list_raw[:2]
+            li_list.extend(['-', remove_cad(li_list_raw[5]), '0'])
+        else:
+            li_list = li_list_raw[:2]
+            li_list.extend([remove_trailing_comma(li_list_raw[4]), remove_cad(li_list_raw[2]), keep_nums(li_list_raw[5], False)])
+        result_list.append(li_list)
     return result_list
-
-def dolly_row_processing(li):
-    li_list_raw = []
-    li_list = []
-    li_list_raw = li.get_text('@', strip=True).split('@')
-    if not (check_is_card(CARD_NAME_QUERY, li_list_raw[0])):
-        return;
-    if li_list_raw[2] == 'Out of stock':
-        li_list = li_list_raw[:2]
-        li_list.extend(['-', remove_cad(li_list_raw[5]), '0'])
-    else:
-        li_list = li_list_raw[:2]
-        li_list.extend([remove_trailing_comma(li_list_raw[4]), remove_cad(li_list_raw[2]), keep_nums(li_list_raw[5], False)])
-    return li_list
 
 #############
 ## HELPERS ##
