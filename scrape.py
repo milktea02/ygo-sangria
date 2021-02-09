@@ -1,9 +1,11 @@
-import requests, sys
+import requests, sys, time, grequests
 from bs4 import BeautifulSoup
 from colorama import init , Fore, Style
 from operator import itemgetter
-from multiprocessing import Pool
+from multiprocessing.dummy import Pool
 init(autoreset=True)
+
+CARD_NAME_QUERY = ''
 
 ####################################################
 ## We want to format our data like so:
@@ -23,45 +25,57 @@ def card_init(card_name):
     card_name_query = card_name.replace(' ', '+').replace('&', '%26')
     return card_name_query
 
+###
+## ASYNCHRONOUSLY GET RESPONSE RESULTS USING grequests // pip install grequests
+###
+def async_requests(urls):
+    '''
+    list -> list
+    A list of results -> a list of responses
+    '''
+    rs = (grequests.get(u) for u in urls)
+    responses = grequests.map(rs)
+    return responses
+
 
 #################################
 ## SCRAPING FACE TO FACE GAMES ##
 #################################
-def f2f_scrape(card_name_query):
+def f2f_scrape():
     f2f_res = []
-    url = "http://www.facetofacegames.com/products/search?query={}".format(card_name_query)
+    url = "http://www.facetofacegames.com/products/search?query={}".format(CARD_NAME_QUERY)
     response = requests.get(url)
     html = response.content
     soup = BeautifulSoup(html, 'html.parser')
     content_table = soup.find('table', attrs={'class': 'invisible-table products_table'})
+    ## Are there any results?
     if content_table == None:
         return f2f_res
     pages = pagination(soup)
     # Do we need to paginate?
     if pages > 0:
-        p = Pool(pages)
         urls = []
-        cards = []
         for i in range(1, pages + 1):
-            url = "http://www.facetofacegames.com/products/search?page={}&query={}".format(i, card_name_query)
-            urls.append((url, card_name_query))
-        results = p.starmap(f2f_scrape_helper, urls)
+            url = "http://www.facetofacegames.com/products/search?page={}&query={}".format(i, CARD_NAME_QUERY)
+            urls.append(url)
+        responses = async_requests(urls)
+        p = Pool(pages)
+        results = p.map(f2f_scrape_helper, responses)
         p.terminate()
         p.join()
         for x in results:
             f2f_res.extend(x)
     else:
-        f2f_res = f2f_scrape_helper(url, card_name_query)
-    
+        f2f_res = f2f_scrape_helper(response)
     f2f_res.sort(key=itemgetter(3))
     return f2f_res
 
-def f2f_scrape_helper(url, card_name_query):
+def f2f_scrape_helper(response):
     result_list = []
-    response = requests.get(url)
     html = response.content
     soup = BeautifulSoup(html, 'html.parser')
     content_table = soup.find('table', attrs={'class': 'invisible-table products_table'})
+    list_of_meta_td = []
     for row in content_table.findAll('tr'):
         for meta_td in row.findAll('td', attrs={'class': 'meta'}): 
             cell_list_raw = []
@@ -70,7 +84,7 @@ def f2f_scrape_helper(url, card_name_query):
             if meta_td == '':
                 continue;
             cell_list_raw = (meta_td.get_text('@', strip=True).split('@'))
-            if not (check_is_card(card_name_query, cell_list_raw[0])):
+            if not (check_is_card(CARD_NAME_QUERY, cell_list_raw[0])):
                 continue;
             if cell_list_raw[2].lower() == 'no conditions in stock.': 
                 cell_list = cell_list_raw[:2]
@@ -83,16 +97,16 @@ def f2f_scrape_helper(url, card_name_query):
                 cell_list.append(remove_cad(cell_list_raw[3]))
                 cell_list.append(keep_nums(cell_list_raw[4]))
             result_list.append(cell_list)
-
     return result_list
+
 
 #####################
 ## SCRAPING DOLLYS ##
 #####################
 
-def dolly_scrape(card_name_query):
+def dolly_scrape():
     dollys_res = []
-    url = "http://www.dollys.ca/products/search?q={}".format(card_name_query)
+    url = "http://www.dollys.ca/products/search?q={}".format(CARD_NAME_QUERY)
     response = requests.get(url)
     html = response.content
     soup = BeautifulSoup(html, 'html.parser')
@@ -100,29 +114,27 @@ def dolly_scrape(card_name_query):
     if content_list == None:
         return dollys_res
     pages = pagination(soup)
-    dollys_res = dolly_scrape_helper(url, card_name_query)
+    dollys_res = dolly_scrape_helper(response)
 
     if pages > 0:
         p = Pool(pages)
-        args = []
+        urls = []
         for i in range(1, pages+1):
-            url = "http://www.dollys.ca/products/search?page={}&q={}".format(i, card_name_query)
-            args.append((url, card_name_query))
-        results = p.starmap(dolly_scrape_helper, args)
+            url = "http://www.dollys.ca/products/search?page={}&q={}".format(i, CARD_NAME_QUERY)
+            urls.append(url)
+        responses = async_requests(urls)
+        results = p.map(dolly_scrape_helper, responses)
         p.terminate()
         p.join()
         for x in results:
             dollys_res.extend(x)
     else:
-        dollys_res = dolly_scrape_helper(url, card_name_query)
-
-    
+        dollys_res = dolly_scrape_helper(response)
     dollys_res.sort(key=itemgetter(3))
     return dollys_res
 
-def dolly_scrape_helper(url, card_name_query):
+def dolly_scrape_helper(response):
     result_list = []
-    response = requests.get(url)
     html = response.content
     soup = BeautifulSoup(html, 'html.parser')
     content_list = soup.find('ul', attrs={'class': 'product-results'}) 
@@ -132,7 +144,7 @@ def dolly_scrape_helper(url, card_name_query):
         li_list_raw = []
         li_list = []
         li_list_raw = li.get_text('@', strip=True).split('@')
-        if not (check_is_card(card_name_query, li_list_raw[0])):
+        if not (check_is_card(CARD_NAME_QUERY, li_list_raw[0])):
             continue;
         if li_list_raw[2] == 'Out of stock':
             li_list = li_list_raw[:2]
@@ -195,6 +207,7 @@ def remove_trailing_comma(string):
 
 
 if __name__ == '__main__':
+    start = time.time()
     print("Starting", sys.argv[0], "...")
     print("...")
 
@@ -207,10 +220,10 @@ if __name__ == '__main__':
 
     card_name = sys.argv[1].lower()
     print("Searching for:", card_name)
-    card_name_query = card_init(card_name)
+    CARD_NAME_QUERY = card_init(card_name)
 
-    f2f = f2f_scrape(card_name_query)
-    dolly = dolly_scrape(card_name_query)
+    f2f = f2f_scrape()
+    dolly = dolly_scrape()
 
     print() 
     print(Fore.GREEN + "NAME | PACK |\nCONDITION | PRICE | STOCK")
@@ -223,3 +236,6 @@ if __name__ == '__main__':
     for row in dolly:
         print(row[0] + "\t|" + row[1])
         print(row[2] + "\t|" + "{0:.2f}".format(row[3]) + "\t|" + row[4] + "\n")
+
+    end = time.time()
+    print("Search took: ", round(end-start, 2))

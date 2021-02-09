@@ -1,0 +1,13 @@
+Results using multiprocessing pools on maxx "c":
+9.49
+8.89
+10.13
+8.67
+8.93
+
+Results using multiprocessing.dummy (threads) + grequests
+5.82
+5.95
+7.77
+6.61
+7.53
